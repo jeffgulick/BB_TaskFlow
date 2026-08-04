@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>TaskFlow Board</h1>
+    </header>
+
+    <main>
+        <!-- Task Creation Form -->
+        <section class="form-section">
+            <form id="taskForm">
+                <input type="text" id="taskTitleInput" placeholder="Task Title" required autocomplete="off">
+                <input type="text" id="taskDescInput" placeholder="Task Description (Optional)" autocomplete="off">
+                <button type="submit">Add Task</button>
+            </form>
+        </section>
+
+        <!-- Kanban Board -->
+        <section class="board-container">
+            <div class="column" id="col-todo">
+                <h2>To Do</h2>
+                <div id="todo-list" class="task-list"></div>
+            </div>
+
+            <div class="column" id="col-in-progress">
+                <h2>In Progress</h2>
+                <div id="in_progress-list" class="task-list"></div>
+            </div>
+
+            <div class="column" id="col-done">
+                <h2>Done</h2>
+                <div id="done-list" class="task-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
