@@ -21,7 +21,7 @@ const fetchTasks = async () => {
     }
 }
 
-// // Render tasks into the UI
+//Render tasks into the UI
 function renderBoard(tasks) {
     todoList.innerHTML = '';
     inProgressList.innerHTML = '';
@@ -36,7 +36,7 @@ function renderBoard(tasks) {
         const safeTitle = escapeHtml(task.title);
         const safeDesc = escapeHtml(task.description || '');
         
-        // for entering quotes in the title or description, we need to ensure they don't break the HTML structure.
+        // for displaying quotes in the title or description.
         const inputTitle = safeTitle.replace(/"/g, '&quot;');
         const inputDesc = safeDesc.replace(/"/g, '&quot;');
 
@@ -46,10 +46,11 @@ function renderBoard(tasks) {
                 <h3>${safeTitle}</h3>
                 ${safeDesc ? `<p>${safeDesc}</p>` : ''}
                 <small>Created: ${new Date(task.created_at).toLocaleString()}</small>
-                
+
+                <!--Checks for list location and renders buttons according to it-->
                 <div class="task-actions" style="margin-top: 10px;">
                     ${task.status !== 'todo' ? `<button onclick="updateStatus('${task.id}', 'todo')">To Do</button>` : ''}
-                    ${task.status !== 'in_progress' ? `<button onclick="updateStatus('${task.id}', 'in_progress')">Progress</button>` : ''}
+                    ${task.status !== 'in_progress' ? `<button onclick="updateStatus('${task.id}', 'in_progress')">Start Task</button>` : ''}
                     ${task.status !== 'done' ? `<button onclick="updateStatus('${task.id}', 'done')">Done</button>` : ''}
                     
                     <button onclick="toggleEditMode('${task.id}', true)">Edit</button>
@@ -92,7 +93,7 @@ taskForm.addEventListener('submit', async (e) => {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, description, status })
+            body: JSON.stringify({ title, description })
         });
 
         if (!response.ok) throw new Error('Failed to create task');
