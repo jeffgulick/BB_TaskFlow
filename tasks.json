@@ -1,7 +1,7 @@
 [
     {
         "id": "f74e5d062c37573f",
-        "title": "Adding new task",
+        "title": "Criminal Justice Class",
         "description": "finish presentation",
         "status": "todo",
         "created_at": "2026-08-05T19:19:17+00:00"
@@ -10,14 +10,14 @@
         "id": "fa930a9bfc418216",
         "title": "Finish MVP",
         "description": "Create dev branch",
-        "status": "todo",
+        "status": "done",
         "created_at": "2026-08-05T19:19:28+00:00"
     },
     {
         "id": "959a630ae865cdd6",
         "title": "Change Progress Button",
         "description": "It should say \"Start Task\"",
-        "status": "todo",
+        "status": "done",
         "created_at": "2026-08-05T19:20:20+00:00"
     },
     {
