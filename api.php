@@ -52,19 +52,36 @@ function loadTasks(string $dataFile): array
     return is_array($decoded) ? $decoded : [];
 }
 
-// Function to convert the PHP array back to JSON and write it to the database.
-function saveTasks(string $dataFile, array $tasks): bool
+// Function to format array data into a JSON string.
+function serializeTasks(array $tasks): string|false
 {
-    // array_values() resets the array keys to be strictly numeric (0, 1, 2...) to ensure it encodes as a JSON array.
+    // array_values() resets the array keys to be strictly numeric to ensure it encodes as a JSON array. Response = tasks = [0 => [...], 1 => [...]] instead of { "0": {...}, "1": {...} }.
     // JSON_PRETTY_PRINT formats the output with line breaks and indentation. Found this in php docs
-    $json = json_encode(array_values($tasks), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    
-    // file_put_contents writes the string to the file. 
-    // LOCK_EX acquires an exclusive lock while writing, preventing race conditions if multiple requests hit at once.
-    return $json !== false && file_put_contents($dataFile, $json . PHP_EOL, LOCK_EX) !== false;
+    return json_encode(array_values($tasks), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
-// Function to parse the raw HTTP request body (used for POST and PUT payloads).
+// Function to write string data to disk.
+function writeToFile(string $filePath, string $content): bool
+{
+    // file_put_contents writes the string to the file. 
+    // LOCK_EX prevents race conditions by locking the file during the write operation.
+    return file_put_contents($filePath, $content . PHP_EOL, LOCK_EX) !== false;
+}
+
+// Function to convert the PHP array back to JSON string and write it to the database.
+function saveTasks(string $dataFile, array $tasks): bool
+{
+    // convert to json string.
+    $json = serializeTasks($tasks);
+
+    if ($json === false) {
+        return false;
+    }
+    // write to file and return the result of that operation.
+    return writeToFile($dataFile, $json);
+}
+
+// Function to parse and read the input payload from request body.
 function readInput(): array
 {
     // php://input is a read-only stream that allows you to read raw data from the incoming request body.
@@ -85,6 +102,10 @@ function readInput(): array
 // Protects against invalid status values.
 function normalizeStatus(?string $status): ?string
 {
+    if ($status === null) {
+        return null;
+    }
+
     // Define the only acceptable status strings based on project requirements.
     $allowed = ['todo', 'in_progress', 'done'];
     
@@ -207,7 +228,9 @@ if ($method === 'PUT') {
 
     // If a status was provided, validate it against the allowed list, then update.
     if ($statusProvided) {
-        $status = normalizeStatus((string)$input['status']);
+        $rawStatus = is_string($input['status']) ? $input['status'] : null;
+        $status = normalizeStatus($rawStatus);
+        
         if ($status === null) {
             sendJson(400, ['error' => 'Invalid status']);
         }
