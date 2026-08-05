@@ -10,9 +10,10 @@ const taskDescInput = document.getElementById('taskDescInput');
 
 // Fetch and render existing tasks on page.
 const fetchTasks = async () => {
-     try {
+    try {
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error('Failed to fetch tasks');
+        
         // Parse the JSON response and render the tasks
         const data = await response.json();
         renderBoard(data.tasks);
@@ -21,7 +22,7 @@ const fetchTasks = async () => {
     }
 }
 
-//Render tasks into the UI
+// Render tasks into the UI
 function renderBoard(tasks) {
     todoList.innerHTML = '';
     inProgressList.innerHTML = '';
@@ -32,11 +33,28 @@ function renderBoard(tasks) {
         card.className = 'task-card'; // Assign a class for styling
         card.id = `task-${task.id}`; // Unique ID for each task card
         
+        // --- DRAG AND DROP: Make the card draggable ---
+        card.setAttribute('draggable', 'true');
+        
+        // When the user starts dragging the card
+        card.addEventListener('dragstart', (e) => {
+            // Store the task ID in the drag event data
+            e.dataTransfer.setData('text/plain', task.id);
+            // Use setTimeout to ensure the browser captures the drag image before making the original transparent
+            setTimeout(() => card.classList.add('dragging'), 0);
+        });
+
+        // When the user lets go of the card
+        card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+        });
+        // ----------------------------------------------
+
         // Escape data to prevent XSS issues
         const safeTitle = escapeHtml(task.title);
         const safeDesc = escapeHtml(task.description || '');
         
-        // for displaying quotes in the title or description.
+        // Ensure quotes don't break the HTML structure in inputs
         const inputTitle = safeTitle.replace(/"/g, '&quot;');
         const inputDesc = safeDesc.replace(/"/g, '&quot;');
 
@@ -93,7 +111,8 @@ taskForm.addEventListener('submit', async (e) => {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, description })
+            // Removed the status variable entirely, letting the PHP backend enforce 'todo'
+            body: JSON.stringify({ title, description }) 
         });
 
         if (!response.ok) throw new Error('Failed to create task');
@@ -122,6 +141,7 @@ async function updateStatus(id, newStatus) {
         console.error('Error updating status:', error);
     }
 }
+
 // Toggles the visibility of the View and Edit sections within a specific card
 function toggleEditMode(id, isEditing) {
     const viewDiv = document.getElementById(`view-${id}`);
@@ -187,6 +207,46 @@ function escapeHtml(str) {
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
 }
+
+// --- DRAG AND DROP: Set up Column Drop Zones ---
+function setupDropZone(listElement, targetStatus) {
+    // We attach events to the parent column so the user can drop anywhere inside the gray area
+    const column = listElement.parentElement; 
+
+    // Required to allow an element to be dropped
+    column.addEventListener('dragover', (e) => {
+        e.preventDefault(); 
+    });
+
+    // Add highlight when dragging into the column
+    column.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        column.classList.add('drag-over');
+    });
+
+    // Remove highlight when leaving the column
+    column.addEventListener('dragleave', () => {
+        column.classList.remove('drag-over');
+    });
+
+    // Handle the actual drop
+    column.addEventListener('drop', (e) => {
+        e.preventDefault();
+        column.classList.remove('drag-over'); // Clean up highlight
+        
+        // Retrieve the task ID we set during dragstart
+        const taskId = e.dataTransfer.getData('text/plain');
+        if (!taskId) return;
+
+        // Call your existing function to move the card!
+        updateStatus(taskId, targetStatus);
+    });
+}
+
+// Initialize the three columns as drop zones
+setupDropZone(todoList, 'todo');
+setupDropZone(inProgressList, 'in_progress');
+setupDropZone(doneList, 'done');
 
 // Initialize the board
 fetchTasks();
