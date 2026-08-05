@@ -165,7 +165,7 @@ if ($method === 'PUT') {
     // Parse the incoming payload.
     $input = readInput();
     
-    // Read the ID from the URL query string (?id=...)
+    // Read the ID from the URL query string (?id=...). _GET is a superglobal array in PHP that contains query string parameters.
     $id = trim((string)($_GET['id'] ?? ''));
 
     // Ensure an ID was provided.

@@ -1,0 +1,44 @@
+[
+    {
+        "id": "f74e5d062c37573f",
+        "title": "Adding new task",
+        "description": "finish presentation",
+        "status": "todo",
+        "created_at": "2026-08-05T19:19:17+00:00"
+    },
+    {
+        "id": "fa930a9bfc418216",
+        "title": "Finish MVP",
+        "description": "Create dev branch",
+        "status": "todo",
+        "created_at": "2026-08-05T19:19:28+00:00"
+    },
+    {
+        "id": "959a630ae865cdd6",
+        "title": "Change Progress Button",
+        "description": "It should say \"Start Task\"",
+        "status": "todo",
+        "created_at": "2026-08-05T19:20:20+00:00"
+    },
+    {
+        "id": "da803253fdfac406",
+        "title": "Make sure html works with screen reader",
+        "description": "Semantic HTML",
+        "status": "todo",
+        "created_at": "2026-08-05T19:22:02+00:00"
+    },
+    {
+        "id": "1a74407489537a5d",
+        "title": "Add drag and drop feature",
+        "description": "HTML5 feature",
+        "status": "todo",
+        "created_at": "2026-08-05T19:22:24+00:00"
+    },
+    {
+        "id": "98f37bdc7a6a702c",
+        "title": "Test",
+        "description": "Screen sizes",
+        "status": "todo",
+        "created_at": "2026-08-05T19:23:03+00:00"
+    }
+]
