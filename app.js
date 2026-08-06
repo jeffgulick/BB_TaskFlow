@@ -8,6 +8,13 @@ const taskForm = document.getElementById('taskForm');
 const taskTitleInput = document.getElementById('taskTitleInput');
 const taskDescInput = document.getElementById('taskDescInput');
 
+const renderEmptyState = (listElement, message) => {
+    const emptyState = document.createElement('div');
+    emptyState.className = 'empty-state';
+    emptyState.textContent = message;
+    listElement.appendChild(emptyState);
+};
+
 // Fetch and render existing tasks on page.
 const fetchTasks = async () => {
     try {
@@ -27,6 +34,15 @@ const fetchTasks = async () => {
     todoList.innerHTML = '';
     inProgressList.innerHTML = '';
     doneList.innerHTML = '';
+
+// Filter tasks by their status to determine if we need to show empty states
+    const todoTasks = tasks.filter(task => task.status === 'todo');
+    const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
+    const doneTasks = tasks.filter(task => task.status === 'done');
+
+    if (todoTasks.length === 0) renderEmptyState(todoList, 'I am empty, Add a task!');
+    if (inProgressTasks.length === 0) renderEmptyState(inProgressList, 'I am empty, Start a task!');
+    if (doneTasks.length === 0) renderEmptyState(doneList, 'I am empty, Finish a task!');
 
     tasks.forEach(task => {
         const card = document.createElement('div');

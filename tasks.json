@@ -1,12 +1,5 @@
 [
     {
-        "id": "fa930a9bfc418216",
-        "title": "Finish MVP",
-        "description": "Create dev branch",
-        "status": "done",
-        "created_at": "2026-08-05T19:19:28+00:00"
-    },
-    {
         "id": "959a630ae865cdd6",
         "title": "Change Progress Button",
         "description": "It should say \"Start Task\"",
@@ -28,10 +21,17 @@
         "created_at": "2026-08-05T19:22:24+00:00"
     },
     {
-        "id": "40097c780821f497",
-        "title": "new task",
+        "id": "9713e63cd9ca541f",
+        "title": "Stop working on this and go to bed",
+        "description": "Your app looks good. solid work for a one page vanilla project.",
+        "status": "in_progress",
+        "created_at": "2026-08-06T05:49:28+00:00"
+    },
+    {
+        "id": "38ebc9d050c2a79f",
+        "title": "UI touchups and enhancements",
         "description": "",
         "status": "in_progress",
-        "created_at": "2026-08-06T03:46:52+00:00"
+        "created_at": "2026-08-06T05:54:07+00:00"
     }
 ]

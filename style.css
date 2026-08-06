@@ -96,6 +96,22 @@ button:active {
     border: 2px dashed var(--color-primary);
 }
 
+.empty-state {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #8e9498;
+    font-size: 0.95rem;
+    font-style: italic;
+    border: 2px dashed rgba(75,78,88,0.16);
+    border-radius: 10px;
+    background: rgba(176,220,212,0.18);
+    padding: 18px;
+    margin-bottom: 18px;
+}
+
 /* Task Card Styles */
 .task-card {
     background: #fff;
