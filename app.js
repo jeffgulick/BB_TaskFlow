@@ -233,6 +233,7 @@ const deleteTask = async (id) => {
 }
 
 // Utility to prevent user input from being interpreted as HTML. 
+// catches stuff like <script>hacked</script> and makes it safe for DOM.
 const escapeHtml = (str) => {
     if (!str) return '';
     return str.replace(/[&<>'"]/g, 
