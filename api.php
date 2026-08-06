@@ -36,36 +36,84 @@ function loadTasks(string $dataFile): array
     if (!file_exists($dataFile)) {
         return [];
     }
-
-    // Reads the entire file into a string.
-    $contents = file_get_contents($dataFile);
-    
-    // Check if the read failed (returns false) or if the file is completely empty.
-    if ($contents === false || trim($contents) === '') {
+    // Open the file in read mode. If it fails, return an empty array. the 'r' mode opens the file for reading only. If the file does not exist, fopen() will return false.
+    $fp = fopen($dataFile, 'r');
+    if ($fp === false) {
         return [];
     }
 
-    // Decodes the JSON string into an associative array (the 'true' parameter ensures it becomes an array, not a standard object).
+    // This locks the file for reading, preventing other processes from writing to it while we read. If it fails, close the file and return an empty array.
+    if (!flock($fp, LOCK_SH)) {
+        fclose($fp);
+        return [];
+    }
+
+    // Read the file contents safely while holding the lock.
+    $contents = stream_get_contents($fp);
+
+    // Release the lock and close the handle.
+    flock($fp, LOCK_UN);
+    fclose($fp);
+    // If the file is empty or unreadable, return an empty array.
+    if ($contents === false || trim($contents) === '') {
+        return [];
+    }
+    // Decode the JSON string into a PHP associative array. If decoding fails, return an empty array.
     $decoded = json_decode($contents, true);
-    
-    // Ensures the decoded result is actually an array before returning it. If it's malformed, return an empty array.
     return is_array($decoded) ? $decoded : [];
 }
 
 // Function to format array data into a JSON string.
 function serializeTasks(array $tasks): string|false
 {
-    // array_values() resets the array keys to be strictly numeric to ensure it encodes as a JSON array. Response = tasks = [0 => [...], 1 => [...]] instead of { "0": {...}, "1": {...} }.
-    // JSON_PRETTY_PRINT formats the output with line breaks and indentation. Found this in php docs
+    // json_encode converts the PHP array into a JSON string.
     return json_encode(array_values($tasks), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 }
 
 // Function to write string data to disk.
 function writeToFile(string $filePath, string $content): bool
 {
-    // file_put_contents writes the string to the file. 
-    // LOCK_EX prevents race conditions by locking the file during the write operation.
-    return file_put_contents($filePath, $content . PHP_EOL, LOCK_EX) !== false;
+    // Open the file in 'c+' mode, which allows reading and writing. If the file doesn't exist, it will be created. If it fails, return false.
+    $fp = fopen($filePath, 'c+');
+    if ($fp === false) {
+        return false;
+    }
+
+    // This locks the file for exclusive writing, preventing other processes from reading or writing to it while we write. If it fails, close the file and return false.
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return false;
+    }
+    // Truncate the file to zero length, effectively clearing its contents. If it fails, release the lock, close the file, and return false.
+    if (ftruncate($fp, 0) === false) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return false;
+    }
+
+    // if fseek fails, it means we couldn't move the file pointer to the beginning of the file. Release the lock, close the file, and return false.
+    if (fseek($fp, 0) === -1) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return false;
+    }
+
+    // Write the new content to the file.
+    $written = fwrite($fp, $content . PHP_EOL);
+    if ($written === false) {
+        flock($fp, LOCK_UN);
+        fclose($fp);
+        return false;
+    }
+
+    // Ensure data is flushed to disk. this is important for data integrity, especially in case of a crash or power loss. If it fails, release the lock, close the file, and return false.
+    fflush($fp);
+
+    // Release lock and close.
+    flock($fp, LOCK_UN);
+    fclose($fp);
+
+    return true;
 }
 
 // Function to convert the PHP array back to JSON string and write it to the database.
@@ -119,7 +167,7 @@ function findTaskIndex(array $tasks, string $id): int
 {
     // Iterate over the array, extracting both the numeric $index and the $task array.
     foreach ($tasks as $index => $task) {
-        // Check if the current task's ID matches the target ID. The ?? '' safely handles missing IDs.
+        
         if (($task['id'] ?? '') === $id) {
             return $index; // Return the position in the array.
         }
@@ -135,84 +183,78 @@ function findTaskIndex(array $tasks, string $id): int
 if (!in_array($method, ['GET', 'POST', 'PUT', 'DELETE'], true)) {
     sendJson(405, ['error' => 'Method not allowed']);
 }
-
-// Load the current state of the JSON database into memory before handling the specific method.
-$tasks = loadTasks($dataFile);
-
-// GET /api.php: Return all tasks.
-if ($method === 'GET') {
+/**
+ * Handle GET requests: return the full tasks list.
+ */
+function handleGet(string $dataFile): void
+{
+    $tasks = loadTasks($dataFile);
     sendJson(200, ['tasks' => $tasks]);
 }
 
-// POST /api.php: Create a new task.
-if ($method === 'POST') {
-    // Parse the incoming JSON payload. returns array.
+/**
+ * Handle POST requests: validate input, create a new task, persist, and
+ * return the created resource with HTTP 201.
+ */
+function handlePost(string $dataFile): void
+{
+    // Read the input payload from the request body.
     $input = readInput();
-    
-    // Extract and trim the title and description, casting them explicitly to strings to satisfy strict types.
+    // Validate required fields and trim whitespace. If missing, return a 400 error.
     $title = trim((string)($input['title'] ?? ''));
     $description = trim((string)($input['description'] ?? ''));
-    
-    // Validate that a title was actually provided.
+
     if ($title === '') {
         sendJson(400, ['error' => 'Title is required']);
     }
 
-    // Construct the new task associative array.
     $task = [
-        // Generate a cryptographically secure 16-character hexadecimal string for the ID (similar to Guid.NewGuid()) but better.
         'id' => bin2hex(random_bytes(8)),
         'title' => $title,
         'description' => $description,
         'status' => 'todo',
-        // formatted timestamp in UTC.
         'created_at' => gmdate('c'),
     ];
-
-    // Append the new task to the in-memory array.
+    // Load existing tasks, append the new task, and save back to the JSON file.
+    $tasks = loadTasks($dataFile);
     $tasks[] = $task;
-
-    // Attempt to save the updated array to the disk.
+    // Save the updated tasks array back to the JSON file. If saving fails, return a 500 error.
     if (!saveTasks($dataFile, $tasks)) {
         sendJson(500, ['error' => 'Failed to save task']);
     }
 
-    // Respond with 201 Created and the new task data.
     sendJson(201, ['task' => $task]);
 }
 
-// PUT /api.php: Update an existing task.
-if ($method === 'PUT') {
-    // Parse the incoming payload.
+/**
+ * Handle PUT requests: update an existing task identified by ?id=...,
+ * validating provided fields and persisting the change.
+ */
+function handlePut(string $dataFile): void
+{
+    // Read the input payload from the request body.
     $input = readInput();
-    
-    // Read the ID from the URL query string (?id=...). _GET is a superglobal array in PHP that contains query string parameters.
+    // Retrieve the task ID from the query string, defaulting to an empty string if not provided.
     $id = trim((string)($_GET['id'] ?? ''));
 
-    // Ensure an ID was provided.
     if ($id === '') {
         sendJson(400, ['error' => 'Task id is required']);
     }
 
-    // Locate the target task's exact index in the array.
+    $tasks = loadTasks($dataFile);
     $index = findTaskIndex($tasks, $id);
-    
-    // If findTaskIndex returns -1, the task doesn't exist.
     if ($index === -1) {
         sendJson(404, ['error' => 'Task not found']);
     }
-
-    // array_key_exists strictly checks if the key is in the payload, even if its value is null or empty.
+    // Check which fields are provided in the input payload. This allows partial updates.
     $titleProvided = array_key_exists('title', $input);
     $statusProvided = array_key_exists('status', $input);
     $descriptionProvided = array_key_exists('description', $input);
-
-    // If the user sent a PUT request with no valid fields to update, reject it.
+    
     if (!$titleProvided && !$statusProvided && !$descriptionProvided) {
         sendJson(400, ['error' => 'No fields to update']);
     }
-
-    // If a title was provided, validate it's not empty, then update the array at the specific index.
+    // Validate and update each field if provided.
     if ($titleProvided) {
         $title = trim((string)$input['title']);
         if ($title === '') {
@@ -221,55 +263,64 @@ if ($method === 'PUT') {
         $tasks[$index]['title'] = $title;
     }
 
-    // Descriptions can usually be cleared out (empty strings), so we don't strictly require length here.
     if ($descriptionProvided) {
+        // No validation for description; it can be empty. just trim whitespace.
         $tasks[$index]['description'] = trim((string)$input['description']);
     }
 
-    // If a status was provided, validate it against the allowed list, then update.
     if ($statusProvided) {
         $rawStatus = is_string($input['status']) ? $input['status'] : null;
         $status = normalizeStatus($rawStatus);
-        
         if ($status === null) {
             sendJson(400, ['error' => 'Invalid status']);
         }
         $tasks[$index]['status'] = $status;
     }
-
-    // Attempt to write the modifications to disk.
+    // Save the updated tasks array back to the JSON file. If saving fails, return a 500 error.
     if (!saveTasks($dataFile, $tasks)) {
         sendJson(500, ['error' => 'Failed to update task']);
     }
-
-    // Respond with 200 OK and the newly modified task data.
+    // Return the updated task in the response.
     sendJson(200, ['task' => $tasks[$index]]);
 }
 
-// DELETE /api.php: Remove a task.
-if ($method === 'DELETE') {
-    // Read the ID from the URL query string (e.g., ?id=123).
+/**
+ * Handle DELETE requests: remove a task identified by ?id=... and persist.
+ */
+function handleDelete(string $dataFile): void
+{
+    // gets id from query string.
     $id = trim((string)($_GET['id'] ?? ''));
-    
-    // Validate the ID is present.
     if ($id === '') {
         sendJson(400, ['error' => 'Task id is required']);
     }
 
-    // Find the index of the task to delete.
+    $tasks = loadTasks($dataFile);
     $index = findTaskIndex($tasks, $id);
     if ($index === -1) {
         sendJson(404, ['error' => 'Task not found']);
     }
-
-    // array_splice removes a specific number of elements (1) starting at a specific index. 
+    // Remove the task from the array using array_splice, which modifies the array in place.
     array_splice($tasks, $index, 1);
-
-    // Save the updated, smaller array to disk.
+    // Save the updated tasks array back to the JSON file. If saving fails, return a 500 error.
     if (!saveTasks($dataFile, $tasks)) {
         sendJson(500, ['error' => 'Failed to delete task']);
     }
-
-    // Respond with a 200 OK success message.
+    // Return a 200 OK response with a success message.
     sendJson(200, ['message' => 'Task deleted']);
+}
+
+switch ($method) {
+    case 'GET':
+        handleGet($dataFile);
+        break;
+    case 'POST':
+        handlePost($dataFile);
+        break;
+    case 'PUT':
+        handlePut($dataFile);
+        break;
+    case 'DELETE':
+        handleDelete($dataFile);
+        break;
 }
