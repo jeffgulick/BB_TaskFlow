@@ -23,7 +23,7 @@ const fetchTasks = async () => {
 }
 
 // Render tasks into the UI
-function renderBoard(tasks) {
+ const renderBoard = (tasks) => {
     todoList.innerHTML = '';
     inProgressList.innerHTML = '';
     doneList.innerHTML = '';
@@ -50,7 +50,7 @@ function renderBoard(tasks) {
         });
         // ----------------------------------------------
 
-        // Escape data to prevent XSS issues
+        // Prevents user input from being interpreted as HTML. 
         const safeTitle = escapeHtml(task.title);
         const safeDesc = escapeHtml(task.description || '');
         
@@ -102,12 +102,23 @@ function renderBoard(tasks) {
 taskForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Debug: log that submit handler ran and current raw values
+    console.log('taskForm submit handler invoked');
+    console.log('raw title:', JSON.stringify(taskTitleInput.value));
+    console.log('raw description:', JSON.stringify(taskDescInput.value));
+
     const title = taskTitleInput.value.trim();
     const description = taskDescInput.value.trim();
 
-    if (!title) return;
+    // If the trimmed title is empty, show a validation message to the user
+    if (!title) {
+        taskTitleInput.setCustomValidity('Title is required');
+        taskTitleInput.reportValidity();
+        return;
+    }
 
     try {
+        console.log('Sending POST to', API_URL, 'body:', { title, description });
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -115,7 +126,21 @@ taskForm.addEventListener('submit', async (e) => {
             body: JSON.stringify({ title, description }) 
         });
 
-        if (!response.ok) throw new Error('Failed to create task');
+        console.log('Fetch completed, status:', response.status);
+        let respBody = null;
+        try {
+            respBody = await response.json();
+            console.log('Response JSON:', respBody);
+        } catch (err) {
+            const text = await response.text();
+            console.log('Response text:', text);
+        }
+
+        if (!response.ok) {
+            console.error('Server returned error for create:', response.status, respBody);
+            alert(respBody?.error || 'Failed to create task');
+            return;
+        }
 
         // Clear the form and immediately update the UI
         taskTitleInput.value = '';
@@ -123,11 +148,18 @@ taskForm.addEventListener('submit', async (e) => {
         fetchTasks();
     } catch (error) {
         console.error('Error creating task:', error);
+        // Optionally show a brief user-visible alert for failures
+        alert('Failed to create task. See console for details.');
     }
 });
 
+// Clear custom validity when the user types so the native validation UI resets
+taskTitleInput.addEventListener('input', () => {
+    taskTitleInput.setCustomValidity('');
+});
+
 // Update a task's status and sync changes via AJAX
-async function updateStatus(id, newStatus) {
+const updateStatus = async (id, newStatus) => {
     try {
         const response = await fetch(`${API_URL}?id=${id}`, {
             method: 'PUT',
@@ -143,7 +175,7 @@ async function updateStatus(id, newStatus) {
 }
 
 // Toggles the visibility of the View and Edit sections within a specific card
-function toggleEditMode(id, isEditing) {
+const toggleEditMode = (id, isEditing) => {
     const viewDiv = document.getElementById(`view-${id}`);
     const editDiv = document.getElementById(`edit-${id}`);
     
@@ -157,7 +189,7 @@ function toggleEditMode(id, isEditing) {
 }
 
 // Gathers the updated inputs and sends the PUT request to the backend
-async function saveInlineEdit(id) {
+const saveInlineEdit = async (id) => {
     // Get the updated values from the input fields
     const newTitle = document.getElementById(`edit-title-${id}`).value.trim();
     const newDesc = document.getElementById(`edit-desc-${id}`).value.trim();
@@ -185,7 +217,7 @@ async function saveInlineEdit(id) {
 }
 
 // Delete tasks dynamically with immediate UI updates
-async function deleteTask(id) {
+const deleteTask = async (id) => {
     if (!confirm('Are you sure you want to delete this task?')) return;
 
     try {
@@ -200,8 +232,9 @@ async function deleteTask(id) {
     }
 }
 
-// Utility to sanitize HTML output
-function escapeHtml(str) {
+// Utility to prevent user input from being interpreted as HTML. 
+// catches stuff like <script>hacked</script> and makes it safe for DOM.
+const escapeHtml = (str) => {
     if (!str) return '';
     return str.replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
@@ -209,7 +242,7 @@ function escapeHtml(str) {
 }
 
 // --- DRAG AND DROP: Set up Column Drop Zones ---
-function setupDropZone(listElement, targetStatus) {
+const setupDropZone = (listElement, targetStatus) => {
     // We attach events to the parent column so the user can drop anywhere inside the gray area
     const column = listElement.parentElement; 
 
