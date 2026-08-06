@@ -117,11 +117,7 @@ const fetchTasks = async () => {
 taskForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    // Debug: log that submit handler ran and current raw values
-    console.log('taskForm submit handler invoked');
-    console.log('raw title:', JSON.stringify(taskTitleInput.value));
-    console.log('raw description:', JSON.stringify(taskDescInput.value));
-
+    // Trim the input values to avoid sending empty strings with whitespace
     const title = taskTitleInput.value.trim();
     const description = taskDescInput.value.trim();
 
@@ -131,26 +127,16 @@ taskForm.addEventListener('submit', async (e) => {
         taskTitleInput.reportValidity();
         return;
     }
-
+    
     try {
-        console.log('Sending POST to', API_URL, 'body:', { title, description });
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' }, // Ensure the server knows we're sending JSON
             // Removed the status variable entirely, letting the PHP backend enforce 'todo'
-            body: JSON.stringify({ title, description }) 
+            body: JSON.stringify({ title, description })
         });
-
-        console.log('Fetch completed, status:', response.status);
-        let respBody = null;
-        try {
-            respBody = await response.json();
-            console.log('Response JSON:', respBody);
-        } catch (err) {
-            const text = await response.text();
-            console.log('Response text:', text);
-        }
-
+        
+        const respBody = await response.json();
         if (!response.ok) {
             console.error('Server returned error for create:', response.status, respBody);
             alert(respBody?.error || 'Failed to create task');
@@ -209,6 +195,7 @@ const saveInlineEdit = async (id) => {
     const newTitle = document.getElementById(`edit-title-${id}`).value.trim();
     const newDesc = document.getElementById(`edit-desc-${id}`).value.trim();
 
+    // Validate that the title is not empty before sending the request for edit.
     if (!newTitle) {
         alert('Task title cannot be empty.');
         return;
