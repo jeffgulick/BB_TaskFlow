@@ -15,28 +15,32 @@
         <!-- Task Creation Form -->
         <section class="form-section">
             <form id="taskForm">
+                <label for="taskTitleInput" class="sr-only">Task title</label>
                 <input type="text" id="taskTitleInput" placeholder="Task Title" required autocomplete="off">
+
+                <label for="taskDescInput" class="sr-only">Task description, optional</label>
                 <input type="text" id="taskDescInput" placeholder="Task Description (Optional)" autocomplete="off">
+
                 <button type="submit">Add Task</button>
             </form>
         </section>
 
         <!--Board -->
         <section class="board-container">
-            <div class="column" id="col-todo">
-                <h2>To Do</h2>
-                <div id="todo-list" class="task-list"></div>
-            </div>
+            <section class="column" id="col-todo" aria-labelledby="todo-heading">
+                <h2 id="todo-heading">To Do</h2>
+                <ul id="todo-list" class="task-list"></ul>
+            </section>
 
-            <div class="column" id="col-in-progress">
-                <h2>In Progress</h2>
-                <div id="in_progress-list" class="task-list"></div>
-            </div>
+            <section class="column" id="col-in-progress" aria-labelledby="in-progress-heading">
+                <h2 id="in-progress-heading">In Progress</h2>
+                <ul id="in_progress-list" class="task-list"></ul>
+            </section>
 
-            <div class="column" id="col-done">
-                <h2>Done</h2>
-                <div id="done-list" class="task-list"></div>
-            </div>
+            <section class="column" id="col-done" aria-labelledby="done-heading">
+                <h2 id="done-heading">Done</h2>
+                <ul id="done-list" class="task-list"></ul>
+            </section>
         </section>
     </main>
 
