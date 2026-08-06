@@ -17,7 +17,7 @@
         "id": "da803253fdfac406",
         "title": "Make sure html works with screen reader",
         "description": "Semantic HTML",
-        "status": "in_progress",
+        "status": "done",
         "created_at": "2026-08-05T19:22:02+00:00"
     },
     {
@@ -28,10 +28,10 @@
         "created_at": "2026-08-05T19:22:24+00:00"
     },
     {
-        "id": "24d386844850386f",
-        "title": "Refactor",
-        "description": "Clean up routes. separation of concerns. add route handler functions. update colors to match BB.",
+        "id": "40097c780821f497",
+        "title": "new task",
+        "description": "",
         "status": "in_progress",
-        "created_at": "2026-08-06T02:01:34+00:00"
+        "created_at": "2026-08-06T03:46:52+00:00"
     }
 ]
