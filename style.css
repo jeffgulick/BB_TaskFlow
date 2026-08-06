@@ -40,6 +40,18 @@ form {
     gap: 12px;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 /* Input & Base Button Touch Targets (44px min-height for thumbs) */
 input, button {
     padding: 10px 12px;
@@ -96,8 +108,31 @@ button:active {
     border: 2px dashed var(--color-primary);
 }
 
+.task-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.empty-state {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #8e9498;
+    font-size: 0.95rem;
+    font-style: italic;
+    border: 2px dashed rgba(75,78,88,0.16);
+    border-radius: 10px;
+    background: rgba(176,220,212,0.18);
+    padding: 18px;
+    margin-bottom: 18px;
+}
+
 /* Task Card Styles */
 .task-card {
+    display: block;
     background: #fff;
     border-radius: 8px;
     padding: 16px;
@@ -119,6 +154,10 @@ button:active {
     border-left-color: var(--color-primary);
 }
 
+.task-card article {
+    display: block;
+}
+
 .task-card h3 {
     font-size: 1.1rem;
     margin-bottom: 6px;
@@ -131,7 +170,7 @@ button:active {
     margin-bottom: 10px;
 }
 
-.task-card small {
+.task-card time {
     display: block;
     color: #8e9498;
     font-size: 0.78rem;

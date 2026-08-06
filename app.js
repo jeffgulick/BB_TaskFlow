@@ -8,6 +8,13 @@ const taskForm = document.getElementById('taskForm');
 const taskTitleInput = document.getElementById('taskTitleInput');
 const taskDescInput = document.getElementById('taskDescInput');
 
+const renderEmptyState = (listElement, message) => {
+    const emptyState = document.createElement('li');
+    emptyState.className = 'empty-state';
+    emptyState.textContent = message;
+    listElement.appendChild(emptyState);
+};
+
 // Fetch and render existing tasks on page.
 const fetchTasks = async () => {
     try {
@@ -28,8 +35,17 @@ const fetchTasks = async () => {
     inProgressList.innerHTML = '';
     doneList.innerHTML = '';
 
+// Filter tasks by their status to determine if we need to show empty states
+    const todoTasks = tasks.filter(task => task.status === 'todo');
+    const inProgressTasks = tasks.filter(task => task.status === 'in_progress');
+    const doneTasks = tasks.filter(task => task.status === 'done');
+
+    if (todoTasks.length === 0) renderEmptyState(todoList, 'Add a task!');
+    if (inProgressTasks.length === 0) renderEmptyState(inProgressList, 'Add a task!');
+    if (doneTasks.length === 0) renderEmptyState(doneList, 'Add a task!');
+
     tasks.forEach(task => {
-        const card = document.createElement('div');
+        const card = document.createElement('li');
         card.className = 'task-card'; // Assign a class for styling
         card.id = `task-${task.id}`; // Unique ID for each task card
         
@@ -59,33 +75,32 @@ const fetchTasks = async () => {
         const inputDesc = safeDesc.replace(/"/g, '&quot;');
 
         card.innerHTML = `
-            <!-- VIEW MODE (Visible by default) -->
-            <div id="view-${task.id}">
-                <h3>${safeTitle}</h3>
+            <article>
+                <header id="view-${task.id}">
+                    <h3>${safeTitle}</h3>
+                </header>
                 ${safeDesc ? `<p>${safeDesc}</p>` : ''}
-                <small>Created: ${new Date(task.created_at).toLocaleString()}</small>
+                <time datetime="${new Date(task.created_at).toISOString()}">Created: ${new Date(task.created_at).toLocaleString()}</time>
 
-                <!--Checks for list location and renders buttons according to it-->
-                <div class="task-actions" style="margin-top: 10px;">
+                <footer class="task-actions" style="margin-top: 10px;">
                     ${task.status !== 'todo' ? `<button onclick="updateStatus('${task.id}', 'todo')">To Do</button>` : ''}
                     ${task.status !== 'in_progress' ? `<button onclick="updateStatus('${task.id}', 'in_progress')">Start Task</button>` : ''}
                     ${task.status !== 'done' ? `<button onclick="updateStatus('${task.id}', 'done')">Done</button>` : ''}
                     
                     <button onclick="toggleEditMode('${task.id}', true)">Edit</button>
                     <button onclick="deleteTask('${task.id}')" class="delete-btn">Delete</button>
-                </div>
-            </div>
+                </footer>
 
-            <!-- EDIT MODE (Hidden by default) -->
-            <div id="edit-${task.id}" style="display: none;">
-                <input type="text" id="edit-title-${task.id}" value="${inputTitle}" style="width: 100%; margin-bottom: 8px;" required>
-                <input type="text" id="edit-desc-${task.id}" value="${inputDesc}" placeholder="Description (Optional)" style="width: 100%; margin-bottom: 12px;">
-                
-                <div class="task-actions">
-                    <button onclick="saveInlineEdit('${task.id}')" style="background-color: #28a745; color: white;">Save</button>
-                    <button onclick="toggleEditMode('${task.id}', false)" style="background-color: #6c757d; color: white;">Cancel</button>
-                </div>
-            </div>
+                <section id="edit-${task.id}" style="display: none;">
+                    <input type="text" id="edit-title-${task.id}" value="${inputTitle}" style="width: 100%; margin-bottom: 8px;" required>
+                    <input type="text" id="edit-desc-${task.id}" value="${inputDesc}" placeholder="Description (Optional)" style="width: 100%; margin-bottom: 12px;">
+                    
+                    <footer class="task-actions">
+                        <button onclick="saveInlineEdit('${task.id}')" style="background-color: #28a745; color: white;">Save</button>
+                        <button onclick="toggleEditMode('${task.id}', false)" style="background-color: #6c757d; color: white;">Cancel</button>
+                    </footer>
+                </section>
+            </article>
         `;
 
         if (task.status === 'todo') {
@@ -102,11 +117,7 @@ const fetchTasks = async () => {
 taskForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    // Debug: log that submit handler ran and current raw values
-    console.log('taskForm submit handler invoked');
-    console.log('raw title:', JSON.stringify(taskTitleInput.value));
-    console.log('raw description:', JSON.stringify(taskDescInput.value));
-
+    // Trim the input values to avoid sending empty strings with whitespace
     const title = taskTitleInput.value.trim();
     const description = taskDescInput.value.trim();
 
@@ -116,26 +127,16 @@ taskForm.addEventListener('submit', async (e) => {
         taskTitleInput.reportValidity();
         return;
     }
-
+    
     try {
-        console.log('Sending POST to', API_URL, 'body:', { title, description });
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' }, // Ensure the server knows we're sending JSON
             // Removed the status variable entirely, letting the PHP backend enforce 'todo'
-            body: JSON.stringify({ title, description }) 
+            body: JSON.stringify({ title, description })
         });
-
-        console.log('Fetch completed, status:', response.status);
-        let respBody = null;
-        try {
-            respBody = await response.json();
-            console.log('Response JSON:', respBody);
-        } catch (err) {
-            const text = await response.text();
-            console.log('Response text:', text);
-        }
-
+        
+        const respBody = await response.json();
         if (!response.ok) {
             console.error('Server returned error for create:', response.status, respBody);
             alert(respBody?.error || 'Failed to create task');
@@ -194,6 +195,7 @@ const saveInlineEdit = async (id) => {
     const newTitle = document.getElementById(`edit-title-${id}`).value.trim();
     const newDesc = document.getElementById(`edit-desc-${id}`).value.trim();
 
+    // Validate that the title is not empty before sending the request for edit.
     if (!newTitle) {
         alert('Task title cannot be empty.');
         return;
